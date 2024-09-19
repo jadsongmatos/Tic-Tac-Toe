@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Linhas Colineares do Jogo da Velha em 4D</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      /* Estilos globais para garantir que o body ocupe toda a tela */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Container principal usando Flexbox */
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      /* Cabeçalho */
+      header {
+        padding: 10px;
+        background-color: #f8f9fa;
+        text-align: center;
+        flex: 0 0 auto; /* Não permite que o cabeçalho redimensione */
+      }
+
+      /* Seção de filtros */
+      .filtros {
+        display: flex;
+        gap: 20px;
+        padding: 10px;
+        background-color: #e9ecef;
+        flex: 0 0 auto; /* Não permite que a seção de filtros redimensione */
+        flex-wrap: wrap; /* Permite que os filtros quebrem para uma nova linha em telas menores */
+      }
+
+      .filtros div {
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Container do gráfico */
+      #grafico-3d {
+        flex: 1 1 auto; /* Permite que o gráfico expanda para ocupar o espaço restante */
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Linhas Colineares do Jogo da Velha em 4D</h1>
+      </header>
+      <div class="filtros">
+        <div>
+          <label for="filtro-x">Filtrar por X:</label>
+          <select id="filtro-x">
+            <option value="all">Todos</option>
+            <!-- Opções serão geradas dinamicamente -->
+          </select>
+        </div>
+        <div>
+          <label for="filtro-y">Filtrar por Y:</label>
+          <select id="filtro-y">
+            <option value="all">Todos</option>
+            <!-- Opções serão geradas dinamicamente -->
+          </select>
+        </div>
+        <div>
+          <label for="filtro-z">Filtrar por Z:</label>
+          <select id="filtro-z">
+            <option value="all">Todos</option>
+            <!-- Opções serão geradas dinamicamente -->
+          </select>
+        </div>
+        <div>
+          <label for="filtro-w">Filtrar por W:</label>
+          <select id="filtro-w">
+            <option value="all">Todos</option>
+            <!-- Opções serão geradas dinamicamente -->
+          </select>
+        </div>
+      </div>
+      <div id="grafico-3d"></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
