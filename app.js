@@ -89,8 +89,18 @@ const cores_w = {
   6: "magenta",
   7: "yellow",
   8: "brown",
-  // Continue conforme necessário
 };
+
+// Função para calcular o deslocamento baseado em W
+function calcularDeslocamento(w, tamanho) {
+  const deslocamentos = {
+    'x': [0, 0, 0],
+    'y': [w * 2, 0, 0],
+    'z': [0, w * 1, 0],
+  };
+  const eixo = ['x', 'y', 'z'][w % 3]; // Alterna entre eixos
+  return deslocamentos[eixo];
+}
 
 // Inicializando os filtros
 const filtros = ["x", "y", "z", "w"];
@@ -102,6 +112,10 @@ filtros.forEach((filtro) => {
     option.text = `${filtro.toUpperCase()}=${i}`;
     select.appendChild(option);
   }
+  const optionAll = document.createElement("option");
+  optionAll.value = "all";
+  optionAll.text = "Todos";
+  select.appendChild(optionAll);
 });
 
 // Função para atualizar o gráfico com base nos filtros
@@ -122,17 +136,24 @@ function atualizarGrafico() {
     );
   });
 
-  // Preparar os traces para o Plotly
+  // Preparar os traces para o Plotly, aplicando o deslocamento
   const traces = linhas_filtradas.map((linha) => {
     const x = linha.map((p) => p[0]);
     const y = linha.map((p) => p[1]);
     const z = linha.map((p) => p[2]);
     const w = linha[0][3]; // Coordenada W do ponto inicial
     const cor = cores_w[w] || "black"; // Cor baseada em W
+
+    // Calcular deslocamento
+    const [desloc_x, desloc_y, desloc_z] = calcularDeslocamento(w, tamanho);
+    const x_desloc = x.map(xi => xi + desloc_x);
+    const y_desloc = y.map(yi => yi + desloc_y);
+    const z_desloc = z.map(zi => zi + desloc_z);
+
     return {
-      x: x,
-      y: y,
-      z: z,
+      x: x_desloc,
+      y: y_desloc,
+      z: z_desloc,
       mode: "lines",
       type: "scatter3d",
       line: {
@@ -140,34 +161,65 @@ function atualizarGrafico() {
         width: 5,
       },
       opacity: 0.8,
-      // Removido o nome para evitar entradas na legenda
-      // name: `W=${w}`
+      customdata: linha, // Passa as coordenadas originais como customdata
+      hovertemplate: '<b>Coordenadas originais:</b><br>' +
+                     `X: ${linha[0][0]}<br>` +
+                     `Y: ${linha[0][1]}<br>` +
+                     `Z: ${linha[0][2]}<br>` +
+                     `W: ${linha[0][3]}<br><extra></extra>`,
     };
   });
 
-  // Combinar os traces das linhas sem os legend_traces
-  const all_traces = traces;
+  // Definir a legenda única para cores
+  const unique_ws = [...new Set(linhas_filtradas.map(linha => linha[0][3]))];
+  const legend_traces = unique_ws.map((w) => {
+    if (w in cores_w) {
+      return {
+        x: [null], // Ponto fictício para legenda
+        y: [null],
+        z: [null],
+        //mode: "markers",
+        mode: "lines",
+        type: "scatter3d",
+        marker: {
+          size: 0,
+          color: cores_w[w],
+        },
+        name: `W=${w}`, // Rótulo da legenda
+        showlegend: false
+      };
+    }
+    return null;
+  }).filter(trace => trace !== null);
 
-  // Definir o layout do gráfico
-  const layout = {
-    title: "Linhas Colineares do Jogo da Velha em 4D",
-    scene: {
-      xaxis: { title: "X", range: [-0.5, tamanho - 0.5] },
-      yaxis: { title: "Y", range: [-0.5, tamanho - 0.5] },
-      zaxis: { title: "Z", range: [-0.5, tamanho - 0.5] },
-    },
-    // Desativar a exibição da legenda
-    showlegend: false,
-    // Ajustar a largura e altura para ocupar o espaço disponível
-    width: window.innerWidth,
-    height:
-      window.innerHeight -
-      document.querySelector("header").offsetHeight -
-      document.querySelector(".filtros").offsetHeight -
-      40,
-  };
+  // Combinar os traces das linhas com os traces da legenda
+  const all_traces = traces.concat(legend_traces);
 
-  Plotly.newPlot("grafico-3d", all_traces, layout, { responsive: true });
+  // Atualize o layout do gráfico para remover as grids
+const layout = {
+  title: "Linhas Colineares do Jogo da Velha em 4D",
+  scene: {
+    xaxis: { title: "X", range: [-0.5, tamanho * 2 - 0.5] },
+    yaxis: { title: "Y", range: [-0.5, tamanho * 2 - 0.5] },
+    zaxis: { title: "Z", range: [-0.5, tamanho - 0.5] },
+  },
+  /*
+  legend: {
+    itemsizing: "constant"
+  },
+  */
+  showlegend: false,
+  width: window.innerWidth,
+  height:
+    window.innerHeight -
+    document.querySelector("header").offsetHeight -
+    document.querySelector(".filtros").offsetHeight - 40,
+};
+
+// Chama a função de renderização do Plotly
+Plotly.newPlot("grafico-3d", all_traces, layout, { responsive: true });
+
+
 }
 
 // Adicionar event listeners aos filtros
