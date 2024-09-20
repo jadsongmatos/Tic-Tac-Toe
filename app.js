@@ -8,6 +8,7 @@ for (let dx of direcaoPossiveis) {
   for (let dy of direcaoPossiveis) {
     for (let dz of direcaoPossiveis) {
       for (let dw of direcaoPossiveis) {
+        // Excluindo a direção nula (0, 0, 0, 0)
         if (!(dx === 0 && dy === 0 && dz === 0 && dw === 0)) {
           direcoes.push([dx, dy, dz, dw]);
         }
@@ -26,7 +27,8 @@ function linhaValida(start, direcao, tamanho) {
       start[2] + direcao[2] * n,
       start[3] + direcao[3] * n,
     ];
-    if (ponto.some((coord) => coord < 0 || coord >= tamanho)) {
+    // Verificar se algum ponto está fora dos limites da grade
+    if (ponto.some((coord) => coord < -1 || coord >= tamanho)) {
       return null;
     }
     linha.push(ponto);
@@ -42,10 +44,7 @@ for (let direcao of direcoes) {
   )) {
     const linha = linhaValida(start, direcao, tamanho);
     if (linha) {
-      // Para evitar duplicatas, apenas adicione linhas onde o ponto inicial é o menor possível
-      if (arraysEqual(linha[0], start)) {
-        linhas.push(linha);
-      }
+      linhas.push(linha);
     }
   }
 }
@@ -68,16 +67,6 @@ function cartesianProduct(arrays) {
   );
 }
 
-// Função auxiliar para comparar arrays
-function arraysEqual(a, b) {
-  return (
-    Array.isArray(a) &&
-    Array.isArray(b) &&
-    a.length === b.length &&
-    a.every((val, index) => val === b[index])
-  );
-}
-
 // Definindo uma paleta de cores para cada valor de W
 const cores_w = {
   0: "red",
@@ -95,8 +84,8 @@ const cores_w = {
 function calcularDeslocamento(w, tamanho) {
   const deslocamentos = {
     'x': [0, 0, 0],
-    'y': [w * 2, 0, 0],
-    'z': [0, w * 1, 0],
+    'y': [w * 3, 0, 0],
+    'z': [0, w * 1.5, 0],
   };
   const eixo = ['x', 'y', 'z'][w % 3]; // Alterna entre eixos
   return deslocamentos[eixo];
@@ -106,7 +95,7 @@ function calcularDeslocamento(w, tamanho) {
 const filtros = ["x", "y", "z", "w"];
 filtros.forEach((filtro) => {
   const select = document.getElementById(`filtro-${filtro}`);
-  for (let i = 0; i < tamanho; i++) {
+  for (let i = -1; i < tamanho; i++) {
     const option = document.createElement("option");
     option.value = i;
     option.text = `${filtro.toUpperCase()}=${i}`;
@@ -129,10 +118,10 @@ function atualizarGrafico() {
   const linhas_filtradas = linhas.filter((linha) => {
     const [x, y, z, w] = linha[0];
     return (
-      (filtro_x === "all" || x === parseInt(filtro_x)) &&
-      (filtro_y === "all" || y === parseInt(filtro_y)) &&
-      (filtro_z === "all" || z === parseInt(filtro_z)) &&
-      (filtro_w === "all" || w === parseInt(filtro_w))
+      (filtro_x === "all" || x === parseInt(filtro_x) || (filtro_x == -1 && linha.some(p => p[0] == -1))) &&
+      (filtro_y === "all" || y === parseInt(filtro_y) || (filtro_y == -1 && linha.some(p => p[1] == -1))) &&
+      (filtro_z === "all" || z === parseInt(filtro_z) || (filtro_z == -1 && linha.some(p => p[2] == -1))) &&
+      (filtro_w === "all" || w === parseInt(filtro_w) || (filtro_w == -1 && linha.some(p => p[3] == -1)))
     );
   });
 
@@ -156,70 +145,39 @@ function atualizarGrafico() {
       z: z_desloc,
       mode: "lines",
       type: "scatter3d",
+      name: `Direção: ${linha[0]}`,  // Nome da legenda
       line: {
         color: cor,
         width: 5,
       },
       opacity: 0.8,
+      showlegend: true,
       customdata: linha, // Passa as coordenadas originais como customdata
       hovertemplate: '<b>Coordenadas originais:</b><br>' +
                      `X: ${linha[0][0]}<br>` +
                      `Y: ${linha[0][1]}<br>` +
                      `Z: ${linha[0][2]}<br>` +
-                     `W: ${linha[0][3]}<br><extra></extra>`,
+                     `W: ${linha[0][3]}<br>`,
     };
   });
 
-  // Definir a legenda única para cores
-  const unique_ws = [...new Set(linhas_filtradas.map(linha => linha[0][3]))];
-  const legend_traces = unique_ws.map((w) => {
-    if (w in cores_w) {
-      return {
-        x: [null], // Ponto fictício para legenda
-        y: [null],
-        z: [null],
-        //mode: "markers",
-        mode: "lines",
-        type: "scatter3d",
-        marker: {
-          size: 0,
-          color: cores_w[w],
-        },
-        name: `W=${w}`, // Rótulo da legenda
-        showlegend: false
-      };
-    }
-    return null;
-  }).filter(trace => trace !== null);
+  const all_traces = [...traces];
 
-  // Combinar os traces das linhas com os traces da legenda
-  const all_traces = traces.concat(legend_traces);
+  // Atualizar o layout do gráfico
+  const layout = {
+    title: "Linhas Colineares do Jogo da Velha em 4D",
+    scene: {
+      xaxis: { title: "X", range: [-0.5-1, tamanho * 2 - 0.5] },
+      yaxis: { title: "Y", range: [-0.5-1, tamanho * 2 - 0.5] },
+      zaxis: { title: "Z", range: [-0.5-1, tamanho - 0.5] },
+    },
+    showlegend: true,
+    width: window.innerWidth-40,
+    height: window.innerHeight - 200,
+  };
 
-  // Atualize o layout do gráfico para remover as grids
-const layout = {
-  title: "Linhas Colineares do Jogo da Velha em 4D",
-  scene: {
-    xaxis: { title: "X", range: [-0.5, tamanho * 2 - 0.5] },
-    yaxis: { title: "Y", range: [-0.5, tamanho * 2 - 0.5] },
-    zaxis: { title: "Z", range: [-0.5, tamanho - 0.5] },
-  },
-  /*
-  legend: {
-    itemsizing: "constant"
-  },
-  */
-  showlegend: false,
-  width: window.innerWidth,
-  height:
-    window.innerHeight -
-    document.querySelector("header").offsetHeight -
-    document.querySelector(".filtros").offsetHeight - 40,
-};
-
-// Chama a função de renderização do Plotly
-Plotly.newPlot("grafico-3d", all_traces, layout, { responsive: true });
-
-
+  // Chama a função de renderização do Plotly
+  Plotly.newPlot("grafico-3d", all_traces, layout, { responsive: true });
 }
 
 // Adicionar event listeners aos filtros
